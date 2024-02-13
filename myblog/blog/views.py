@@ -9,6 +9,8 @@ from .models import Post, Comment
 from .forms import EmailPostForm, CommentForm
 from myblog.settings import EMAIL_HOST_USER
 
+from taggit.models import Tag
+
 def post_share(request, post_id):
     # Извлечь пост по идентификатору id
     post = get_object_or_404(
@@ -41,30 +43,35 @@ def post_share(request, post_id):
                                                     'form': form,
                                                     'sent': sent})
 
-# def post_list(request):
-#     post_list = Post.published.all()
-#     # Постраничная разбивка с 3 постами на страницу
-#     paginator = Paginator(post_list, 3)
-#     page_number = request.GET.get('page', 1)
-#     try:
-#         posts = paginator.page(page_number)
-#     except PageNotAnInteger:
-#         # Если page_number не целое число, то выдать певрую страницу
-#         posts = paginator.page(1)
-#     except EmptyPage:
-#         # Если page_number находится в не диапазона, то выдать последнюю страницу
-#         posts = paginator.page(paginator.num_pages)
-#     return render(request,
-#                   'blog/post/list.html',
-#                   {'posts': posts},
-#                   )
+def post_list(request, tag_slug=None):
+    post_list = Post.published.all()
+    tag = None
+    if tag_slug:
+        tag = get_object_or_404(Tag, slug=tag_slug)
+        post_list = post_list.filter(tags__in=[tag])
+    # Постраничная разбивка с 3 постами на страницу
+    paginator = Paginator(post_list, 3)
+    page_number = request.GET.get('page', 1)
+    try:
+        posts = paginator.page(page_number)
+    except PageNotAnInteger:
+        # Если page_number не целое число, то выдать певрую страницу
+        posts = paginator.page(1)
+    except EmptyPage:
+        # Если page_number находится в не диапазона, то выдать последнюю страницу
+        posts = paginator.page(paginator.num_pages)
+    return render(request,
+                  'blog/post/list.html',
+                  {'posts': posts,
+                   'tag': tag},
+                  )
 # Вместо представления списка постов функцией
-class PostListView(ListView):
-    # Типовой набор запросов (вместо queryset) если указать model=Post - это = queryset=Post.objects.all()
-    queryset = Post.published.all()
-    context_object_name = 'posts'
-    paginate_by = 3
-    template_name = "blog/post/list.html"
+# class PostListView(ListView):
+#     # Типовой набор запросов (вместо queryset) если указать model=Post - это = queryset=Post.objects.all()
+#     queryset = Post.published.all()
+#     context_object_name = 'posts'
+#     paginate_by = 3
+#     template_name = "blog/post/list.html"
 
 def post_detail(request, year, month, day, post):
     # try:
